@@ -1,0 +1,36 @@
+---
+- name: Setup Apache Web Server using Docker
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Copy Dockerfile to remote
+      copy:
+        src: ../docker/Dockerfile
+        dest: /tmp/Dockerfile
+
+    - name: Build Docker Image
+      command: docker build -t apache-image /tmp
+
+    - name: Run Apache Container
+      command: docker run -d -p 80:80 --name apache apache-image
+
+    - name: Copy HTML Template into container
+      template:
+        src: templates/index.html.j2
+        dest: /tmp/index.html
+
+    - name: Copy file to container
+      command: docker cp /tmp/index.html apache:/usr/local/apache2/htdocs/index.html
